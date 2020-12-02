@@ -67,6 +67,19 @@ static SDL_Rect vkeyboard_position[6] = {
   {80,   138, 0, 0},
   {80,   64,  0, 0},
 };
+
+//Miyoo
+#ifdef MIYOO
+static SDL_Rect vkeyboard_position_fullscreen[6] = {
+  {32,   24,   0, 0},
+  {121,  24,   0, 0},
+  {32,   170, 0, 0},
+  {121,  170, 0, 0},
+  {80,   138, 0, 0},
+  {80,   64,  0, 0},
+};
+#endif
+
 #define VKEYB_WIDTH  168
 #define VKEYB_HEIGHT 48
 
@@ -163,6 +176,10 @@ static int fullscreen_y_off = 0;
 static float sdldisplay_current_size = 1;
 
 static libspectrum_byte sdldisplay_is_full_screen = 0;
+
+//Miyoo
+
+    static SDL_Rect dst;
 
 #ifdef GCWZERO
 typedef enum sdldisplay_od_boder_types {
@@ -278,8 +295,10 @@ static int sdldisplay_allocate_colours( int numColours, Uint32 *colour_values,
 static int sdldisplay_allocate_colours_alpha( int numColours, Uint32 *colour_values,
                                              Uint32 *bw_values );
 #endif
-#if GCWZERO
+#if GCWZERO 
+#ifndef MIYOO
 static void uidisplay_status_overlay( void );
+#endif
 #endif
 
 static int sdldisplay_load_gfx_mode( void );
@@ -853,8 +872,8 @@ sdldisplay_load_gfx_mode( void )
 #else
     sdldisplay_flips_triple_buffer = 0;
 #endif
-    flags = settings_current.full_screen ? (SDL_FULLSCREEN | SDL_HWSURFACE | SDL_TRIPLEBUF)
-    : (SDL_HWSURFACE | SDL_TRIPLEBUF);
+    flags = settings_current.full_screen ? (SDL_FULLSCREEN | SDL_HWSURFACE | SDL_DOUBLEBUF)
+    : (SDL_HWSURFACE | SDL_DOUBLEBUF);
   } else {
     /* On new kmsdrm driver no need to Flip page to deactivate triple buffer */
     if ( sdldisplay_od_system_type != OPENDINGUX )
@@ -868,7 +887,9 @@ sdldisplay_load_gfx_mode( void )
 #ifndef RETROFW
   sdl_od_panel_type = option_enumerate_general_gcw0_od_panel_type();
 #endif
+#ifndef MIYOO
   sdldisplay_current_od_border = option_enumerate_general_gcw0_od_border();
+#endif  
   od_icon_position = od_icon_positions[sdldisplay_current_od_border];  
 
   if ( ( sdldisplay_current_od_border && !sdldisplay_last_od_border ) ||
@@ -949,7 +970,7 @@ sdldisplay_load_gfx_mode( void )
   sdldisplay_is_full_screen = settings_current.full_screen;
 
 #ifdef GCWZERO
-  settings_current.od_triple_buffer = !!( sdldisplay_gc->flags & SDL_TRIPLEBUF );
+  settings_current.od_triple_buffer = !!( sdldisplay_gc->flags & SDL_DOUBLEBUF );
   sdldisplay_is_triple_buffer = settings_current.od_triple_buffer;
 
   sdldisplay_last_od_border = sdldisplay_current_od_border;
@@ -1029,6 +1050,40 @@ sdldisplay_load_gfx_mode( void )
 
   /* Redraw the entire screen... */
   display_refresh_all();
+
+  return 0;
+}
+
+#ifdef MIYOO
+void uidisplay_fullscreen (void)
+{
+  if(settings_current.od_fullscreen)  
+  {
+    dst.x = 32; //BORDER_WIDTH;
+    dst.y = 25; //BORDER_HEIGHT; 24
+    dst.w = 320 - 2 * dst.x; //SCREEN_WIDTH - 2 * dst.x;
+    dst.h = 240 - 2 * 24; //dst.y;//SCREEN_HEIGHT - 2 * dst.y;
+    
+    SDL_Rect src = { 0, 0, 320, 240};//SCREEN_WIDTH, SCREEN_HEIGHT };
+    SDL_SoftStretch(tmp_screen, &dst, sdldisplay_gc, &src);
+  }
+  else
+  {
+    SDL_BlitSurface(tmp_screen, NULL, sdldisplay_gc, NULL);
+  }
+}
+#endif 
+
+int
+uidisplay_hotswap_statusbar( void )
+{
+  if ( od_status_line_ovelay ) {
+    SDL_FreeSurface( od_status_line_ovelay );
+    od_status_line_ovelay = NULL;
+  }
+
+  /* Setup the new GFX mode */
+  if( sdldisplay_load_gfx_mode() ) return 1;
 
   return 0;
 }
@@ -1300,6 +1355,7 @@ uidisplay_putpixel_alpha( int x, int y, int colour ) {
   }
 }
 
+#ifndef MIYOO
 static void
 uidisplay_status_overlay( void ) {
   int scale = ( libspectrum_machine_capabilities( machine_current->machine ) & LIBSPECTRUM_MACHINE_CAPABILITY_TIMEX_VIDEO ) ? 2 : 1;
@@ -1326,6 +1382,7 @@ uidisplay_status_overlay( void ) {
 
   display_refresh_rect( r1.x - 1 * scale, r1.y - 1 * scale, r1.w + 8 * scale, r1.h + 1 * scale, 1 );
 }
+#endif // Miyoo
 #endif
 
 #if VKEYBOARD
@@ -1333,7 +1390,7 @@ void
 uidisplay_vkeyboard( void (*print_fn)(void), int position ) {
   static int old_position = -1;
   int current_position;
-  SDL_Rect *current_positions = &vkeyboard_position[0];
+  static SDL_Rect *current_positions = &vkeyboard_position[0];
 
 #ifdef GCWZERO
   od_t_screen_scaling* ssc = &od_screen_scalings_2x[0];
@@ -1361,6 +1418,18 @@ uidisplay_vkeyboard( void (*print_fn)(void), int position ) {
     current_position = 4;
   else
     current_position = position;
+
+  //Miyoo
+#ifdef MIYOO 
+  if(settings_current.od_fullscreen) 
+  {
+    current_positions = &vkeyboard_position_fullscreen[0];
+  }
+  else 
+  {
+    current_positions = &vkeyboard_position[0];
+  }
+#endif
 
   SDL_Rect r1 = { machine_current->timex ? current_positions[current_position].x * 2 : current_positions[current_position].x,
                   machine_current->timex ? current_positions[current_position].y * 2 : current_positions[current_position].y,
@@ -1549,9 +1618,14 @@ uidisplay_plot16( int x, int y, libspectrum_word data,
 void
 uidisplay_frame_end( void )
 {
+  //Miyoo
+  #ifndef MIYOO
   SDL_Rect *r;
-  Uint32 tmp_screen_pitch, dstPitch;
   SDL_Rect *last_rect;
+  #endif
+  Uint32 tmp_screen_pitch, dstPitch;
+
+  //Miyoo
 
   /* We check for a switch to fullscreen here to give systems with a
      windowed-only UI a chance to free menu etc. resources before
@@ -1573,10 +1647,14 @@ uidisplay_frame_end( void )
     ui_widget_print_vkeyboard();
 #endif
 
+//Miyoo
+#ifndef MIYOO
 #ifdef GCWZERO
   if ( settings_current.statusbar && ui_widget_level == -1 &&
        ( !sdldisplay_current_od_border || settings_current.od_statusbar_with_border ) )
     uidisplay_status_overlay();
+
+#endif
 #endif
 
   /* Force a full redraw if requested */
@@ -1595,59 +1673,74 @@ uidisplay_frame_end( void )
 
   if ( !(ui_widget_level >= 0) && num_rects == 0 && !sdl_status_updated )
     return;
+  
+  //Miyoo va bien el fullscreen pero no el status bar
+  #ifdef MIYOO
+    uidisplay_fullscreen();
+  #endif
 
   if( SDL_MUSTLOCK( sdldisplay_gc ) ) SDL_LockSurface( sdldisplay_gc );
 
-  tmp_screen_pitch = tmp_screen->pitch;
 
-  dstPitch = sdldisplay_gc->pitch;
 
-  last_rect = updated_rects + num_rects;
+  //Miyoo 
 
-  for( r = updated_rects; r != last_rect; r++ ) {
-#ifdef GCWZERO
-    if ( sdldisplay_current_od_border ) {
-      if ( ( r->x > clip_area.x + clip_area.w ) ||
-           ( r->y > clip_area.y + clip_area.h ) )
-        continue;
-      if ( r->x < clip_area.x )
-        r->x = clip_area.x;
-      if ( r->y < clip_area.y )
-        r->y = clip_area.y;
-      if ( r->x + r->w > clip_area.x + clip_area.w )
-        r->w = clip_area.w - ( r->x - clip_area.x );
-      if ( r->y + r->h > clip_area.y + clip_area.h )
-        r->h = clip_area.h - ( r->y - clip_area.y );
-    }
-#endif
-    int dst_y = r->y * sdldisplay_current_size + fullscreen_y_off;
-    int dst_h = r->h;
-    int dst_x = r->x * sdldisplay_current_size + fullscreen_x_off;
+  // #ifndef MIYOO
+  //   last_rect = updated_rects + num_rects;
 
-    scaler_proc16(
-      (libspectrum_byte*)tmp_screen->pixels +
-                        (r->x+1) * tmp_screen->format->BytesPerPixel +
-	                (r->y+1)*tmp_screen_pitch,
-      tmp_screen_pitch,
-      (libspectrum_byte*)sdldisplay_gc->pixels +
-	                 dst_x * sdldisplay_gc->format->BytesPerPixel +
-			 dst_y*dstPitch,
-      dstPitch, r->w, dst_h
-    );
+  //   for( r = updated_rects; r != last_rect; r++ ) {
+  // #ifdef GCWZERO
+  //     if ( sdldisplay_current_od_border ) {
+  //       if ( ( r->x > clip_area.x + clip_area.w ) ||
+  //            ( r->y > clip_area.y + clip_area.h ) )
+  //         continue;
+  //       if ( r->x < clip_area.x )
+  //         r->x = clip_area.x;
+  //       if ( r->y < clip_area.y )
+  //         r->y = clip_area.y;
+  //       if ( r->x + r->w > clip_area.x + clip_area.w )
+  //         r->w = clip_area.w - ( r->x - clip_area.x );
+  //       if ( r->y + r->h > clip_area.y + clip_area.h )
+  //         r->h = clip_area.h - ( r->y - clip_area.y );
+  //     }
+  // #endif
+  //     int dst_y = r->y * sdldisplay_current_size + fullscreen_y_off;
+  //     int dst_h = r->h;
+  //     int dst_x = r->x * sdldisplay_current_size + fullscreen_x_off;
 
-    /* Adjust rects for the destination rect size */
-    r->x = dst_x;
-    r->y = dst_y;
-    r->w *= sdldisplay_current_size;
-    r->h = dst_h * sdldisplay_current_size;
-  }
+  //     scaler_proc16(
+  //       (libspectrum_byte*)tmp_screen->pixels +
+  //                         (r->x+1) * tmp_screen->format->BytesPerPixel +
+  // 	                (r->y+1)*tmp_screen_pitch,
+  //       tmp_screen_pitch,
+  //       (libspectrum_byte*)sdldisplay_gc->pixels +
+  // 	                 dst_x * sdldisplay_gc->format->BytesPerPixel +
+  // 			 dst_y*dstPitch,
+  //       dstPitch, r->w, dst_h
+  //     );
 
-#ifdef GCWZERO
-  if ( settings_current.statusbar && (!sdldisplay_current_od_border || settings_current.od_statusbar_with_border) )
+  //     /* Adjust rects for the destination rect size */
+  //     r->x = dst_x;
+  //     r->y = dst_y;
+  //     r->w *= sdldisplay_current_size;
+  //     r->h = dst_h * sdldisplay_current_size;
+  //   }
+  // #endif
+
+#ifdef MIYOO
+  if ( settings_current.statusbar ) {
 #else
-  if ( settings_current.statusbar )
-#endif
+  #ifdef GCWZERO
+  if ( settings_current.statusbar && (!sdldisplay_current_od_border || settings_current.od_statusbar_with_border) ) {
+  #else
+  if ( settings_current.statusbar ) {
+  #endif //#ifdef GCWZERO
+#endif //#ifded MIYOO  
+    tmp_screen_pitch = tmp_screen->pitch;
+
+    dstPitch = sdldisplay_gc->pitch;
     sdl_icon_overlay( tmp_screen_pitch, dstPitch );
+  }
 
   if( SDL_MUSTLOCK( sdldisplay_gc ) ) SDL_UnlockSurface( sdldisplay_gc );
 

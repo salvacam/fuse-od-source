@@ -118,7 +118,9 @@ GET_SET_KEY_FUNCTIONS( 13 )
 GET_SET_KEY_FUNCTIONS( 14 )
 GET_SET_KEY_FUNCTIONS( 15 )
 #ifdef GCWZERO
+#ifndef MIYOO
 GET_SET_KEY_FUNCTIONS( 16 )
+#endif  /* #ifdef MIYOO */
 #endif  /* #ifdef GCWZERO */
 #endif  /* #ifndef GEKKO */
 #endif  /* #ifdef USE_JOYSTICK */
@@ -208,8 +210,10 @@ SUBMENU_KEY_SELECTIONS( 13 )
 SUBMENU_KEY_SELECTIONS( 14 )
 SUBMENU_KEY_SELECTIONS( 15 )
 #ifdef GCWZERO
+#ifndef MIYOO
 SUBMENU_KEY_SELECTIONS( 16 )
-#endif
+#endif /* #ifndef MIYOO */ 
+#endif /* #ifndef GCWZERO */
 #endif  /* #ifndef GEKKO */
 #endif  /* #ifdef USE_JOYSTICK */
 
@@ -259,18 +263,29 @@ static widget_menu_entry submenu_keyboard_buttons[] = {
 #ifdef GCWZERO
 static widget_menu_entry submenu_gcw0_joystick_buttons[] = {
   { "Select joystick button" },
+  #ifdef MIYOO
+  { "Button \012B\011", INPUT_KEY_1, submenu_select_key_for_button_1, NULL, get_key_name_for_button_1, 0 },
+  { "Button \012A\011", INPUT_KEY_2, submenu_select_key_for_button_2, NULL, get_key_name_for_button_2, 0 },
+  { "Button \012Y\011", INPUT_KEY_3, submenu_select_key_for_button_3, NULL, get_key_name_for_button_3, 0 },
+  { "Button \012X\011", INPUT_KEY_4, submenu_select_key_for_button_4, NULL, get_key_name_for_button_4, 0 },
+  #else
   { "Button \012A\011", INPUT_KEY_1, submenu_select_key_for_button_1, NULL, get_key_name_for_button_1, 0 },
   { "Button \012B\011", INPUT_KEY_2, submenu_select_key_for_button_2, NULL, get_key_name_for_button_2, 0 },
   { "Button \012X\011", INPUT_KEY_3, submenu_select_key_for_button_3, NULL, get_key_name_for_button_3, 0 },
   { "Button \012Y\011", INPUT_KEY_4, submenu_select_key_for_button_4, NULL, get_key_name_for_button_4, 0 },
+  #endif
   { "Button \012L1\011", INPUT_KEY_5, submenu_select_key_for_button_5, NULL, get_key_name_for_button_5, 0 },
   { "Button \012R1\011", INPUT_KEY_6, submenu_select_key_for_button_6, NULL, get_key_name_for_button_6, 0 },
+  #ifndef MIYOO
   { "Button \012L2\011", INPUT_KEY_7, submenu_select_key_for_button_7, NULL, get_key_name_for_button_7, 0 },
   { "Button \012R2\011", INPUT_KEY_8, submenu_select_key_for_button_8, NULL, get_key_name_for_button_8, 0 },
+  #endif
   { "Button \012START\011", INPUT_KEY_9, submenu_select_key_for_button_9, NULL, get_key_name_for_button_9, 0 },
   { "Button \012SELECT\011", INPUT_KEY_0, submenu_select_key_for_button_10, NULL, get_key_name_for_button_10, 0 },
+  #ifndef MIYOO
   { "Button \012L3\011", INPUT_KEY_a, submenu_select_key_for_button_11, NULL, get_key_name_for_button_11, 0 },
   { "Button \012R3\011", INPUT_KEY_b, submenu_select_key_for_button_12, NULL, get_key_name_for_button_12, 0 },
+  #endif
   { NULL }
 };
 static widget_menu_entry submenu_gcw0_keys_buttons[] = {
@@ -278,19 +293,30 @@ static widget_menu_entry submenu_gcw0_keys_buttons[] = {
   { "Button \012U\011p", INPUT_KEY_u, submenu_select_key_for_button_1, NULL, get_key_name_for_button_1, 0 },
   { "Button \012D\011own", INPUT_KEY_d, submenu_select_key_for_button_2, NULL, get_key_name_for_button_2, 0 },
   { "Button \012L\011eft", INPUT_KEY_l, submenu_select_key_for_button_3, NULL, get_key_name_for_button_3, 0 },
-  { "Button \012R\011ight", INPUT_KEY_r, submenu_select_key_for_button_4, NULL,	get_key_name_for_button_4, 0 },
+  { "Button \012R\011ight", INPUT_KEY_r, submenu_select_key_for_button_4, NULL, get_key_name_for_button_4, 0 },
+  #ifdef MIYOO
+  { "Button \012B\011 Button", INPUT_KEY_a, submenu_select_key_for_button_5, NULL, get_key_name_for_button_5, 0 },
+  { "Button \012A\011 Button", INPUT_KEY_b, submenu_select_key_for_button_6, NULL, get_key_name_for_button_6, 0 },
+  { "Button \012Y\011 Button", INPUT_KEY_x, submenu_select_key_for_button_7, NULL, get_key_name_for_button_7, 0 },
+  { "Button \012X\011 Button", INPUT_KEY_y, submenu_select_key_for_button_8, NULL, get_key_name_for_button_8, 0 },
+  #else
   { "Button \012A\011 Button", INPUT_KEY_a, submenu_select_key_for_button_5, NULL, get_key_name_for_button_5, 0 },
   { "Button \012B\011 Button", INPUT_KEY_b, submenu_select_key_for_button_6, NULL, get_key_name_for_button_6, 0 },
   { "Button \012X\011 Button", INPUT_KEY_x, submenu_select_key_for_button_7, NULL, get_key_name_for_button_7, 0 },
   { "Button \012Y\011 Button", INPUT_KEY_y, submenu_select_key_for_button_8, NULL, get_key_name_for_button_8, 0 },
+  #endif
   { "Button \012L1\011 Button", INPUT_KEY_1, submenu_select_key_for_button_9, NULL, get_key_name_for_button_9, 0 },
   { "Button \012R1\011 Button", INPUT_KEY_2, submenu_select_key_for_button_10, NULL, get_key_name_for_button_10, 0 },
+  #ifndef MIYOO
   { "Button \012L2\011 Button", INPUT_KEY_3, submenu_select_key_for_button_11, NULL, get_key_name_for_button_11, 0 },
   { "Button \012R2\011 Button", INPUT_KEY_4, submenu_select_key_for_button_12, NULL, get_key_name_for_button_12, 0 },
+  #endif
   { "Button \012START\011 Button", INPUT_KEY_5, submenu_select_key_for_button_13, NULL, get_key_name_for_button_13, 0 },
   { "Button \012SELECT\011 Button", INPUT_KEY_6, submenu_select_key_for_button_14, NULL, get_key_name_for_button_14, 0 },
+  #ifndef MIYOO
   { "Button \012L3\011 Button", INPUT_KEY_7, submenu_select_key_for_button_15, NULL, get_key_name_for_button_15, 0 },
   { "Button \012R3\011 Button", INPUT_KEY_8, submenu_select_key_for_button_16, NULL, get_key_name_for_button_16, 0 },
+  #endif
   { NULL }
 };
 #endif  /* ifdef GCWZERO */

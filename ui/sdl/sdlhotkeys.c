@@ -39,6 +39,7 @@ static int push_combo_event( Uint8* flags );
 static int filter_combo_done( const SDL_Event *event );
 static int is_combo_possible( const SDL_Event *event );
 
+#ifndef MIYOO
 static const char * const od_border[] = {
   "Full",
   "Large",
@@ -47,7 +48,7 @@ static const char * const od_border[] = {
   "None",
   NULL
 };
-
+#endif
 
 /* I allways forget what is push and what is drop */
 #define DROP_EVENT 0
@@ -84,6 +85,27 @@ static const char * const od_border[] = {
     R1 + Y           Machine select (F9)
 */
 
+
+/*
+  Combos for Miyoo:
+    Select + Start   Exit fuse
+    R + A            Load state - Open file (F3)
+    R + B            Save state - Save file (F2)
+
+    L + A            Fullscreen
+    L + B            Status bar
+*/
+
+#ifdef MIYOO
+
+#define EXIT            (FLAG_L1|FLAG_R1)
+#define OPEN_FILES      (FLAG_R1|FLAG_A)
+#define SAVE_FILES      (FLAG_R1|FLAG_B)
+#define FULLSCREEN      (FLAG_L1|FLAG_A)
+#define STATUS_BAR      (FLAG_L1|FLAG_B)
+
+#else
+
 #define OPEN_JOYSTICK   (FLAG_L1|FLAG_R1|FLAG_X)
 #define TRIPLE_BUFFER   (FLAG_L1|FLAG_R1|FLAG_B)
 #define CHANGE_BORDER   (FLAG_L1|FLAG_R1|FLAG_A)
@@ -99,6 +121,8 @@ static const char * const od_border[] = {
 #define SAVE_FILES      (FLAG_L1|FLAG_B)
 #define OPEN_FILES      (FLAG_L1|FLAG_X)
 #define OPEN_MEDIA      (FLAG_L1|FLAG_Y)
+
+#endif
 
 int is_combo_possible( const SDL_Event *event )
 {
@@ -156,12 +180,35 @@ push_combo_event( Uint8* flags )
   SDLKey combo_key = 0;
   int toggle_triple_buffer = 0;
   int change_border = 0;
+  int fullscreen = 0;
+  int status_bar = 0;
 
   /* Nothing to do */
   if ( !flags ) return 0;
 
   /* Search for valid combos */
   /* First must be checked the combos with Select or Start or L1+R1*/
+  #ifdef MIYOO
+  switch (*flags) {
+  case EXIT:
+    combo_key = SDLK_F10; break;
+
+  case OPEN_FILES:
+    combo_key = SDLK_F3; break;
+
+  case SAVE_FILES:
+    combo_key = SDLK_F2; break;
+
+  case FULLSCREEN:
+    fullscreen = 1; break;
+
+  case STATUS_BAR:
+    status_bar = 1; break;
+
+  default:
+    break;
+  }
+  #else 
   switch (*flags) {
   case OPEN_JOYSTICK:
     combo_key = SDLK_F12; break;
@@ -202,6 +249,7 @@ push_combo_event( Uint8* flags )
   default:
     break;
   }
+  #endif
 
   /* Push combo event */
   if ( combo_key ) {
@@ -231,11 +279,13 @@ push_combo_event( Uint8* flags )
 
   /* Change border */
   } else if ( change_border ) {
+    #ifndef MIYOO
     int current_border = option_enumerate_general_gcw0_od_border();
     /* Swith between Full and None border */
     current_border = current_border ? 0 : 4;
     if ( settings_current.od_border ) free( settings_current.od_border );
     settings_current.od_border = strdup(od_border[current_border]);
+    #endif
 
     /* Clean flags and mark combo as done */
     *flags = 0x00;
@@ -245,7 +295,35 @@ push_combo_event( Uint8* flags )
     uidisplay_hotswap_gfx_mode();
     return 1;
   /* Nothing to do */
-  } else
+  }
+  #ifdef MIYOO
+  else if ( fullscreen ) {
+    settings_current.od_fullscreen = !settings_current.od_fullscreen;
+
+    /* Clean flags and mark combo as done */
+    *flags = 0x00;
+    combo_done = 1;
+
+    /* make the needed UI changes */
+    //uidisplay_frame_end();
+
+    return 1;
+  /* Nothing to do */
+  }
+   else if ( status_bar ) {
+    settings_current.statusbar = !settings_current.statusbar;
+
+    /* Clean flags and mark combo as done */
+    *flags = 0x00;
+    combo_done = 1;
+
+    //uidisplay_hotswap_gfx_mode();
+    uidisplay_hotswap_statusbar();
+    return 1;
+  /* Nothing to do */
+  }
+  #endif
+   else
     return 0;
 }
 

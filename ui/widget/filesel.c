@@ -844,7 +844,11 @@ static void widget_print_default_save_filename( void )
 {
   char *default_save, *c;
   char  print_button[128];
+  #ifdef MIYOO
+  const char* button_label = "\012X\001 = Save\012";
+  #else
   const char* button_label = "\012Y\001 = Save\012";
+  #endif
   const int   label_wide = 184;
 
   if ( !last_filename ) return;
@@ -916,13 +920,21 @@ static int widget_print_all_filenames( struct widget_dirent **filenames, int n,
 #endif
     widget_printstring( 12, 22 * 8, WIDGET_COLOUR_FOREGROUND,
 #ifdef GCWZERO
+      #ifdef MIYOO
+             "\012B\001 = select" );
+      #else 
 				     "\012A\001 = select" );
+      #endif
 #else
 				     "\012RETURN\001 = select" );
 #endif
     widget_printstring_right( 244, 22 * 8, WIDGET_COLOUR_FOREGROUND,
 #ifdef GCWZERO
+      #ifdef MIYOO
+             "\012Y\001 = enter name" );
+      #else
 					   "\012X\001 = enter name" );
+      #endif
 #else
 					   "\012TAB\001 = enter name" );
 #endif
