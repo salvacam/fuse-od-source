@@ -59,11 +59,13 @@ static SDL_Surface *tmp_screen=NULL; /* Temporary screen for scalers */
 static SDL_Surface *keyb_screen = NULL;
 static SDL_Surface *keyb_screen_save = NULL;
 static int init_vkeyboard_canvas = 0;
+//Miyoo
+#ifdef MIYOO
 static SDL_Rect vkeyboard_position[6] = {
-  {8,    8,   0, 0},
-  {148,  8,   0, 0},
-  {8,    176, 0, 0},
-  {148,  176, 0, 0},
+  {6,    2,   0, 0},
+  {150,  2,   0, 0},
+  {6,    190, 0, 0},
+  {148,  190, 0, 0},
   {80,   138, 0, 0},
   {80,   64,  0, 0},
 };
@@ -71,12 +73,21 @@ static SDL_Rect vkeyboard_position[6] = {
 //Miyoo
 #ifdef MIYOO
 static SDL_Rect vkeyboard_position_fullscreen[6] = {
-  {32,   24,   0, 0},
-  {121,  24,   0, 0},
-  {32,   170, 0, 0},
-  {121,  170, 0, 0},
+  {30,   22,   0, 0},
+  {125,  22,   0, 0},
+  {30,   172, 0, 0},
+  {125,  172, 0, 0},
   {80,   138, 0, 0},
   {80,   64,  0, 0},
+};
+#else
+static SDL_Rect vkeyboard_position[6] = {
+  {8,    8,   0, 0},
+  {148,  8,   0, 0},
+  {8,    176, 0, 0},
+  {148,  176, 0, 0},
+  {80,   138, 0, 0},
+  {80,   64,  0, 0}
 };
 #endif
 
@@ -86,11 +97,31 @@ static SDL_Rect vkeyboard_position_fullscreen[6] = {
 #ifdef GCWZERO
 /* Positions for GCWZERO scaling (Border option) */
 static SDL_Rect vkeyboard_position_no_border[4] = {
-  {32,   24,  0, 0},
-  {121,  24,  0, 0},
-  {32,   170, 0, 0},
-  {121,  170, 0, 0},
+  {34,   26,  0, 0},
+  {119,  26,  0, 0},
+  {34,   168, 0, 0},
+  {119,  168, 0, 0},
 };
+#ifdef MIYOO
+static SDL_Rect vkeyboard_position_minium_border[4] = {
+  {30,   20,  0, 0},
+  {128,  20,  0, 0},
+  {30,   172, 0, 0},
+  {128,  172, 0, 0}
+};
+static SDL_Rect vkeyboard_position_small_border[4] = {
+  {26,  16,  0, 0},
+  {130, 16,  0, 0},
+  {26,  175, 0, 0},
+  {130, 175, 0, 0}
+};
+static SDL_Rect vkeyboard_position_medium_border[4] = {
+  {18,   12,  0, 0},
+  {136,  12,  0, 0},
+  {18,   180, 0, 0},
+  {136,  180, 0, 0}
+};
+#else
 static SDL_Rect vkeyboard_position_small_border[4] = {
   {28,   22,  0, 0},
   {125,  22,  0, 0},
@@ -103,6 +134,7 @@ static SDL_Rect vkeyboard_position_medium_border[4] = {
   {22,   176, 0, 0},
   {131,  176, 0, 0},
 };
+#endif
 static SDL_Rect vkeyboard_position_large_border[4] = {
   {14,   12,  0, 0},
   {140,  12,  0, 0},
@@ -178,8 +210,15 @@ static float sdldisplay_current_size = 1;
 static libspectrum_byte sdldisplay_is_full_screen = 0;
 
 //Miyoo
+#ifdef MIYOO
+static SDL_Rect dst;
+static SDL_Rect src = { 0, 0, 320, 240 };
 
-    static SDL_Rect dst;
+static int position_border_width = 32;
+static int position_border_height = 25;      
+static int border_width = 32;
+static int border_height = 24;
+#endif
 
 #ifdef GCWZERO
 typedef enum sdldisplay_od_boder_types {
@@ -261,6 +300,23 @@ typedef struct od_s_icon_positions {
   SDL_Rect     icon_cassette;
   SDL_Rect     status_line;
 } od_t_icon_positions;
+
+#ifdef MIYOO
+typedef struct od_s_icon_positions_Miyoo {
+  SDL_Rect     icon_disk;
+  SDL_Rect     icon_mdr;
+  SDL_Rect     icon_cassette;
+} od_t_icon_positions_Miyoo;
+
+static od_t_icon_positions_Miyoo od_icon_positions_Miyoo[] = {
+  //     icon_disk           icon_mdr           icon_cassette
+  { { 246, 218, 0, 0 }, { 267, 218, 0, 0 }, { 288, 220, 0, 0 } }, //Full
+  { { 256, 209, 0, 0 }, { 266, 209, 0, 0 }, { 276, 211, 0, 0 } }, //Medium
+  { { 248, 203, 0, 0 }, { 258, 203, 0, 0 }, { 268, 205, 0, 0 } }, //Small
+  { { 243, 199, 0, 0 }, { 253, 199, 0, 0 }, { 263, 201, 0, 0 } }, //Minium
+  { { 240, 196, 0, 0 }, { 250, 196, 0, 0 }, { 260, 198, 0, 0 } }  //Fullscreen
+};
+#endif
 
 static od_t_icon_positions od_icon_positions[] = {
   { Full,   { 243, 218, 0, 0 }, { 264, 218, 0, 0 }, { 285, 220, 0, 0 }, { 5,  225, 242, 10 } },
@@ -1057,14 +1113,49 @@ sdldisplay_load_gfx_mode( void )
 #ifdef MIYOO
 void uidisplay_fullscreen (void)
 {
-  if(settings_current.od_fullscreen)  
+  if(!settings_current.od_fullscreen && strncmp(settings_current.od_border,"Full", 4 ) == 0)  
   {
-    dst.x = 32; //BORDER_WIDTH;
-    dst.y = 25; //BORDER_HEIGHT; 24
-    dst.w = 320 - 2 * dst.x; //SCREEN_WIDTH - 2 * dst.x;
-    dst.h = 240 - 2 * 24; //dst.y;//SCREEN_HEIGHT - 2 * dst.y;
-    
-    SDL_Rect src = { 0, 0, 320, 240};//SCREEN_WIDTH, SCREEN_HEIGHT };
+    SDL_BlitSurface(tmp_screen, NULL, sdldisplay_gc, NULL);
+  } 
+  else 
+  {
+    if (settings_current.od_fullscreen)
+    {
+      position_border_width = 32;
+      position_border_height = 25;      
+      border_width = 32;
+      border_height = 24;
+    } 
+    else 
+    {
+      //fprintf( stderr, "%s: Option border\n", settings_current.od_border );
+      //Full|Medium|Small|Minium
+      //Medium
+      position_border_width = 16;
+      position_border_height = 13;
+      border_width = 16;
+      border_height = 12;
+
+      if (strncmp(settings_current.od_border,"Small", 4 ) == 0)
+      {
+        position_border_width = 24;
+        position_border_height = 19;
+        border_width = 24;
+        border_height = 18;
+      }
+      else if (strncmp(settings_current.od_border,"Minium", 4 ) == 0)
+      {      
+        position_border_width = 28;
+        position_border_height = 22;
+        border_width = 28;
+        border_height = 21;
+      }
+    }
+
+    dst.x = position_border_width;
+    dst.y = position_border_height;
+    dst.w = 320 - 2 * border_width;
+    dst.h = 240 - 2 * border_height;
     SDL_SoftStretch(tmp_screen, &dst, sdldisplay_gc, &src);
   }
   else
@@ -1087,6 +1178,8 @@ uidisplay_hotswap_statusbar( void )
 
   return 0;
 }
+
+#endif 
 
 int
 uidisplay_hotswap_gfx_mode( void )
@@ -1188,6 +1281,7 @@ sdl_blit_icon( SDL_Surface **icon,
   dst_h = h;
   dst_x = x * sdldisplay_current_size + fullscreen_x_off;
 
+#ifndef MIYOO
   scaler_proc16(
 	(libspectrum_byte*)tmp_screen->pixels +
 			(x+1) * tmp_screen->format->BytesPerPixel +
@@ -1198,7 +1292,8 @@ sdl_blit_icon( SDL_Surface **icon,
 			dst_y * dstPitch,
 	dstPitch, w, dst_h
   );
-
+#endif  
+  
   if( num_rects == MAX_UPDATE_RECT ) {
     sdldisplay_force_full_refresh = 1;
     return;
@@ -1224,6 +1319,34 @@ sdl_icon_overlay( Uint32 tmp_screen_pitch, Uint32 dstPitch )
   }
 #endif
 
+#ifdef MIYOO
+  if(settings_current.od_fullscreen) 
+  {
+    r.x = od_icon_positions_Miyoo[4].icon_disk.x;
+    r.y = od_icon_positions_Miyoo[4].icon_disk.y;
+  }
+  else
+  {
+    r.x = od_icon_positions_Miyoo[3].icon_disk.x;
+    r.y = od_icon_positions_Miyoo[3].icon_disk.y;
+    if (strncmp(settings_current.od_border,"Full", 4 ) == 0)
+    {
+      r.x = od_icon_positions_Miyoo[0].icon_disk.x;
+      r.y = od_icon_positions_Miyoo[0].icon_disk.y;
+    }
+    else if (strncmp(settings_current.od_border,"Medium", 4 ) == 0)
+    {
+      r.x = od_icon_positions_Miyoo[1].icon_disk.x;
+      r.y = od_icon_positions_Miyoo[1].icon_disk.y;
+    }
+    else if (strncmp(settings_current.od_border,"Small", 4 ) == 0)
+    {
+      r.x = od_icon_positions_Miyoo[2].icon_disk.x;
+      r.y = od_icon_positions_Miyoo[2].icon_disk.y;
+    }
+  }
+#endif
+  
   switch( sdl_disk_state ) {
   case UI_STATUSBAR_STATE_ACTIVE:
     sdl_blit_icon( green_disk, &r, tmp_screen_pitch, dstPitch );
@@ -1241,6 +1364,34 @@ sdl_icon_overlay( Uint32 tmp_screen_pitch, Uint32 dstPitch )
   if ( sdldisplay_current_od_border != Full ) {
     r.x = od_icon_position.icon_mdr.x;
     r.y = od_icon_position.icon_mdr.y;
+  }
+#endif
+
+#ifdef MIYOO
+  if(settings_current.od_fullscreen) 
+  {
+    r.x = od_icon_positions_Miyoo[4].icon_mdr.x;
+    r.y = od_icon_positions_Miyoo[4].icon_mdr.y;
+  }
+  else
+  {
+    r.x = od_icon_positions_Miyoo[3].icon_mdr.x;
+    r.y = od_icon_positions_Miyoo[3].icon_mdr.y;
+    if (strncmp(settings_current.od_border,"Full", 4 ) == 0)
+    {
+      r.x = od_icon_positions_Miyoo[0].icon_mdr.x;
+      r.y = od_icon_positions_Miyoo[0].icon_mdr.y;
+    }
+    else if (strncmp(settings_current.od_border,"Medium", 4 ) == 0)
+    {
+      r.x = od_icon_positions_Miyoo[1].icon_mdr.x;
+      r.y = od_icon_positions_Miyoo[1].icon_mdr.y;
+    }
+    else if (strncmp(settings_current.od_border,"Small", 4 ) == 0)
+    {
+      r.x = od_icon_positions_Miyoo[2].icon_mdr.x;
+      r.y = od_icon_positions_Miyoo[2].icon_mdr.y;
+    }
   }
 #endif
   r.w = red_mdr[0]->w;
@@ -1265,6 +1416,36 @@ sdl_icon_overlay( Uint32 tmp_screen_pitch, Uint32 dstPitch )
     r.y = od_icon_position.icon_cassette.y;
   }
 #endif
+
+#ifdef MIYOO
+  if(settings_current.od_fullscreen) 
+  {
+    r.x = od_icon_positions_Miyoo[4].icon_cassette.x;
+    r.y = od_icon_positions_Miyoo[4].icon_cassette.y;
+  }
+  else
+  {
+    r.x = od_icon_positions_Miyoo[3].icon_cassette.x;
+    r.y = od_icon_positions_Miyoo[3].icon_cassette.y;
+    if (strncmp(settings_current.od_border,"Full", 4 ) == 0)
+    {
+      r.x = od_icon_positions_Miyoo[0].icon_cassette.x;
+      r.y = od_icon_positions_Miyoo[0].icon_cassette.y;
+    }
+    else if (strncmp(settings_current.od_border,"Medium", 4 ) == 0)
+    {
+      r.x = od_icon_positions_Miyoo[1].icon_cassette.x;
+      r.y = od_icon_positions_Miyoo[1].icon_cassette.y;
+    }
+    else if (strncmp(settings_current.od_border,"Small", 4 ) == 0)
+    {
+      r.x = od_icon_positions_Miyoo[2].icon_cassette.x;
+      r.y = od_icon_positions_Miyoo[2].icon_cassette.y;
+    }
+  }
+
+#endif
+
   r.w = red_cassette[0]->w;
   r.h = red_cassette[0]->h;
 
@@ -1277,8 +1458,10 @@ sdl_icon_overlay( Uint32 tmp_screen_pitch, Uint32 dstPitch )
     sdl_blit_icon( red_cassette, &r, tmp_screen_pitch, dstPitch );
     break;
   }
-
-  sdl_status_updated = 0;
+  
+  #ifndef MIYOO
+  sdl_status_updated = 0; 
+  #endif
 }
 
 /* Set one pixel in the display */
@@ -1427,7 +1610,22 @@ uidisplay_vkeyboard( void (*print_fn)(void), int position ) {
   }
   else 
   {
-    current_positions = &vkeyboard_position[0];
+    current_positions = &vkeyboard_position_minium_border[0];
+    if (strncmp(settings_current.od_border,"Full", 4 ) == 0)
+    {
+      current_positions = &vkeyboard_position[0];
+    }
+    else if (strncmp(settings_current.od_border,"Medium", 4 ) == 0)
+    {
+     current_positions = &vkeyboard_position_medium_border[0];
+    }
+    else if (strncmp(settings_current.od_border,"Small", 4 ) == 0)
+    {
+     current_positions = &vkeyboard_position_small_border[0];
+    }
+    //fprintf( stderr, "%s: Border for position keyboard\n", settings_current.od_border );
+    //fprintf( stderr, "%i: x position keyboard\n", current_positions[current_position].x );
+    //fprintf( stderr, "%i: y position keyboard\n", current_positions[current_position].y );
   }
 #endif
 

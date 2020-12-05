@@ -33,6 +33,9 @@ int uidisplay_init( int width, int height );
 void uidisplay_area( int x, int y, int w, int h );
 void uidisplay_frame_end( void );
 int uidisplay_hotswap_gfx_mode( void );
+#ifdef MIYOO
+int uidisplay_hotswap_statusbar( void );
+#endif
 
 #ifdef USE_WIDGET
 /* Routines for backing up and restoring the frame buffer as the widget UI does

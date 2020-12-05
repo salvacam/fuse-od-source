@@ -39,7 +39,15 @@ static int push_combo_event( Uint8* flags );
 static int filter_combo_done( const SDL_Event *event );
 static int is_combo_possible( const SDL_Event *event );
 
-#ifndef MIYOO
+#ifdef MIYOO
+static const char * const od_border[] = {
+  "Full",
+  "Medium",
+  "Small",
+  "Minium",
+  NULL
+};
+#else
 static const char * const od_border[] = {
   "Full",
   "Large",
@@ -102,7 +110,8 @@ static const char * const od_border[] = {
 #define OPEN_FILES      (FLAG_R1|FLAG_A)
 #define SAVE_FILES      (FLAG_R1|FLAG_B)
 #define FULLSCREEN      (FLAG_L1|FLAG_A)
-#define STATUS_BAR      (FLAG_L1|FLAG_B)
+#define CHANGE_BORDER   (FLAG_L1|FLAG_B)
+#define STATUS_BAR      (FLAG_L1|FLAG_X)
 
 #else
 
@@ -205,6 +214,9 @@ push_combo_event( Uint8* flags )
   case STATUS_BAR:
     status_bar = 1; break;
 
+  case CHANGE_BORDER:
+    change_border = 1; break;
+
   default:
     break;
   }
@@ -279,20 +291,43 @@ push_combo_event( Uint8* flags )
 
   /* Change border */
   } else if ( change_border ) {
-    #ifndef MIYOO
+
+#ifdef MIYOO
+  //fprintf( stderr, "%s: Option border\n", settings_current.od_border );
+  int current_border = 0;
+  if (strncmp(settings_current.od_border, od_border[0], 4 ) == 0)
+  { 
+    current_border = 1;
+  }
+  else if (strncmp(settings_current.od_border, od_border[1], 4 ) == 0) 
+  {
+    current_border = 2;
+  }
+  else if (strncmp(settings_current.od_border, od_border[2], 4 ) == 0)
+  {
+    current_border = 3;
+  }
+  //fprintf( stderr, "%i: Current border\n", current_border );
+  settings_current.od_border = strdup(od_border[current_border]);
+
+#else
     int current_border = option_enumerate_general_gcw0_od_border();
     /* Swith between Full and None border */
     current_border = current_border ? 0 : 4;
     if ( settings_current.od_border ) free( settings_current.od_border );
     settings_current.od_border = strdup(od_border[current_border]);
-    #endif
+#endif
 
     /* Clean flags and mark combo as done */
     *flags = 0x00;
     combo_done = 1;
 
+    #ifdef MIYOO
+    uidisplay_hotswap_statusbar();
+    #else
     /* make the needed UI changes */
     uidisplay_hotswap_gfx_mode();
+    #endif
     return 1;
   /* Nothing to do */
   }
@@ -305,8 +340,11 @@ push_combo_event( Uint8* flags )
     combo_done = 1;
 
     /* make the needed UI changes */
-    //uidisplay_frame_end();
-
+    #ifdef MIYOO
+    uidisplay_hotswap_statusbar();
+    #else
+    uidisplay_frame_end();
+    #endif
     return 1;
   /* Nothing to do */
   }
@@ -316,9 +354,11 @@ push_combo_event( Uint8* flags )
     /* Clean flags and mark combo as done */
     *flags = 0x00;
     combo_done = 1;
-
-    //uidisplay_hotswap_gfx_mode();
+    #ifdef MIYOO
     uidisplay_hotswap_statusbar();
+    #else
+    uidisplay_hotswap_gfx_mode();
+    #endif
     return 1;
   /* Nothing to do */
   }
@@ -389,7 +429,47 @@ filter_combo_events( const SDL_Event *event )
       else
         flags |= FLAG_R1;
       break;
+    #ifdef MIYOO
+    case SDLK_LCTRL:     /* B  */
+      if ( flags ) {
+        if ( flags & FLAG_B )
+          return (DROP_EVENT); /* Filter Repeat key */
+        else
+          flags |= FLAG_B;
+      } else
+        return (PUSH_EVENT);
+      break;
 
+    case SDLK_LALT:      /* A  */
+      if ( flags ) {
+        if ( flags & FLAG_A)
+          return (DROP_EVENT); /* Filter Repeat key */
+        else
+          flags |= FLAG_A;
+      } else
+        return (PUSH_EVENT);
+      break;
+
+    case SDLK_SPACE:     /* Y  */
+      if ( flags ) {
+        if ( flags & FLAG_Y )
+          return (DROP_EVENT); /* Filter Repeat key */
+        else
+          flags |= FLAG_Y;
+      } else
+        return (PUSH_EVENT);
+      break;
+
+    case SDLK_LSHIFT:      /* X  */
+      if ( flags ) {
+        if ( flags & FLAG_X)
+          return (DROP_EVENT); /* Filter Repeat key */
+        else
+          flags |= FLAG_X;
+      } else
+        return (PUSH_EVENT);
+      break;
+    #else      
     case SDLK_LCTRL:     /* A  */
       if ( flags ) {
         if ( flags & FLAG_A )
@@ -429,7 +509,7 @@ filter_combo_events( const SDL_Event *event )
       } else
         return (PUSH_EVENT);
       break;
-
+    #endif
     /* Key not in combo */
     default:
       not_in_combo = 1;
